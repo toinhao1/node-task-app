@@ -9,6 +9,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "mongodb": "^3.2.3"
+    "mongodb": "^3.2.3",
+    "mongoose": "^5.5.3",
+    "npm": "^6.9.0",
+    "validator": "^10.11.0"
   }
 }
