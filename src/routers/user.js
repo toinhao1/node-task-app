@@ -2,6 +2,8 @@ const express = require('express');
 require('../db/mongoose');
 const User = require('../models/user');
 const router = new express.Router();
+const multer = require('multer');
+const sharp = require('sharp');
 const auth = require('../middleware/auth');
 
 router.post('/users', async (req, res) => {
@@ -31,6 +33,7 @@ router.post('/users/login', async (req, res) => {
   }
 });
 
+// User logout
 router.post('/users/logout', auth, async (req, res) => {
   try {
     req.user.tokens = req.user.tokens.filter(token => {
@@ -53,6 +56,7 @@ router.post('/users/logoutAll', auth, async (req, res) => {
   }
 });
 
+// Get your own profile
 router.get('/users/me', auth, async (req, res) => {
   res.send(req.user);
 });
@@ -78,6 +82,7 @@ router.patch('/users/me', auth, async (req, res) => {
   }
 });
 
+// Users able to delete themsevles
 router.delete('/users/me', auth, async (req, res) => {
   try {
     await req.user.remove();
@@ -85,6 +90,66 @@ router.delete('/users/me', auth, async (req, res) => {
     res.send(req.user);
   } catch (err) {
     res.status(500).send(err);
+  }
+});
+
+// Setup multer to handle uploads
+const upload = multer({
+  limits: {
+    fileSize: 1000000
+  },
+  fileFilter(req, file, cb) {
+    if (!file.originalname.match(/\.(jpg|jpeg|png)$/)) {
+      return cb(new Error('Please upload an image'));
+    }
+    cb(undefined, true);
+    // cb(new Error('File must be an image!'))
+  }
+});
+
+// Upload avatar route
+router.post(
+  '/users/me/avatar',
+  auth,
+  upload.single('avatar'),
+  async (req, res) => {
+    const buffer = await sharp(req.file.buffer)
+      .resize({ width: 250, height: 250 })
+      .png()
+      .toBuffer();
+    req.user.avatar = buffer;
+    await req.user.save();
+    res.send();
+  },
+  (error, req, res, next) => {
+    res.status(400).send({ error: error.message });
+  }
+);
+
+// Delete avatar route
+router.delete('/users/me/avatar', auth, async (req, res) => {
+  try {
+    req.user.avatar = undefined;
+    await req.user.save();
+    res.send();
+  } catch (err) {
+    res.status(500).send(err);
+  }
+});
+
+// Fetch avatar image
+router.get('/users/:id/avatar', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (!user || !user.avatar) {
+      throw new Error();
+    }
+
+    res.set('Content-Type', 'image/png');
+    res.send(user.avatar);
+  } catch (err) {
+    res.status(404).send();
   }
 });
 
