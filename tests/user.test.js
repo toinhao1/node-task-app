@@ -29,6 +29,17 @@ test('Should signup a new user', async () => {
   expect(user.password).not.toBe('skdnekudfui324');
 });
 
+test('Should not create a user with invalid inputs', async () => {
+  await request(app)
+    .post('/users')
+    .send({
+      name: 'jkk',
+      email: '283933kjndfcom',
+      password: 'password'
+    })
+    .expect(400);
+});
+
 test('Should login existing user', async () => {
   const response = await request(app)
     .post('/users/login')
@@ -108,6 +119,25 @@ test('Should not update invalid user fields', async () => {
     .set('Authorization', `Bearer ${userOne.tokens[0].token}`)
     .send({
       location: 'San Francisco'
+    })
+    .expect(400);
+});
+
+test('Should not update user if unauthenticated', async () => {
+  await request(app)
+    .patch('/users/me')
+    .send({
+      name: 'Frederico'
+    })
+    .expect(401);
+});
+
+test('Should not update with invlaid inputs', async () => {
+  await request(app)
+    .patch('/users/me')
+    .set('Authorization', `Bearer ${userOne.tokens[0].token}`)
+    .send({
+      password: 'password'
     })
     .expect(400);
 });
